@@ -250,7 +250,7 @@ window.addEventListener('resize',resize); resize();
    AUDIO ENGINE
    =================================================================== */
 const Audio={ctx:null,master:null,limiter:null,analyser:null,reverb:null,revGain:null,
-  userVol:0.9, muted:false, bg:false, started:false, freq:new Float32Array(1024)};
+  userVol:0.9, muted:false, bg:false, playPaused:false, started:false, freq:new Float32Array(1024)};
 
 function ensureAudio(){
   if(Audio.ctx) { if(Audio.ctx.state==='suspended') Audio.ctx.resume(); return Audio.ctx; }
@@ -276,7 +276,7 @@ function makeIR(ctx,dur,decay){
     for(let i=0;i<len;i++){const t=i/len; d[i]=(Math.random()*2-1)*Math.pow(1-t,decay);}}
   return buf;
 }
-function effVol(){ return Audio.muted?0:(Audio.userVol*(Audio.bg?0.15:1)); }
+function effVol(){ return (Audio.muted||Audio.playPaused)?0:(Audio.userVol*(Audio.bg?0.15:1)); }
 function applyVol(t){ if(Audio.master) Audio.master.gain.setTargetAtTime(effVol(), (Audio.ctx?Audio.ctx.currentTime:0), 0.05); }
 
 let noiseBuf=null;
@@ -387,9 +387,10 @@ requestAnimationFrame(frame);
 
 function setPaused(p){
   paused=p;
+  Audio.playPaused=p;          // force master output silent on pause (reliable stop)
+  applyVol();
   if(scene&&scene.onPause) scene.onPause(p);
   $('#wPlay').textContent=paused?'▶':'⏸';
-  if(Audio.ctx){ if(paused){} }
 }
 function togglePause(){ if(scene) setPaused(!paused); }
 
